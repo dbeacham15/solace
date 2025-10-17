@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@100;300;400;700;900&display=swap');
+@import url('https://fonts.cdnfonts.com/css/mollie-gibson');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Solace Health brand color palette */
+    --color-primary: 77 101 255; /* #4d65ff */
+    --color-secondary: 139 92 246;
+    --color-accent: 34 197 94;
+    --color-neutral: 107 114 128;
+
+    /* Font families */
+    --font-body: 'Lato', sans-serif;
+    --font-heading: 'Mollie Gibson', 'Lato', sans-serif;
+  }
+
+  * {
+    @apply antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    overflow: hidden;
+  }
+
+  body {
+    @apply text-healthcare-neutral-900 bg-white;
+    font-family: var(--font-body);
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+
+  /* Focus styles for better accessibility - using Solace brand blue */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-healthcare-primary-500 ring-offset-2;
+  }
+}
+
+@layer utilities {
+  /* Custom animations for smooth transitions */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Text balance for better readability */
+  .text-balance {
+    text-wrap: balance;
+  }
+}
