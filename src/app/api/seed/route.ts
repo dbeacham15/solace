@@ -3,6 +3,13 @@ import { advocates } from "../../../db/schema";
 import { advocateData } from "../../../db/seed/advocates";
 
 export async function POST() {
+  if (!db) {
+    return Response.json(
+      { error: "Database not configured. Please set DATABASE_URL environment variable." },
+      { status: 500 }
+    );
+  }
+
   const records = await db.insert(advocates).values(advocateData).returning();
 
   return Response.json({ advocates: records });

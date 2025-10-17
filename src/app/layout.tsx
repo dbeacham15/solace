@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Lato } from "next/font/google";
 import "./globals.css";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { QueryProvider } from "@/components/QueryProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const lato = Lato({
+  subsets: ["latin"],
+  weight: ["300", "400", "700", "900"],
+});
 
 export const metadata: Metadata = {
-  title: "Solace Candidate Assignment",
-  description: "Show us what you got",
+  title: "Solace - Healthcare Advocates",
+  description: "Find experienced healthcare advocates to support your journey",
 };
 
 export default function RootLayout({
@@ -16,7 +21,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={lato.className}>
+        <QueryProvider>
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </QueryProvider>
+      </body>
     </html>
   );
 }
