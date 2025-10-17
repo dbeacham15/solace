@@ -2,26 +2,45 @@ import { NextRequest } from 'next/server';
 import { sql, and, or, gte, lte, ilike, SQL, count } from 'drizzle-orm';
 import db from '../../../db';
 import { advocates } from '../../../db/schema';
+import {
+  sanitizeString,
+  sanitizeStringArray,
+  validatePaginationParams,
+  validateExperienceRange,
+  validateSortField,
+  validateSortDirection,
+} from '@/utils/input-sanitization';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
 
-  // Parse pagination params
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
+  // Parse and validate pagination params
+  const rawPage = parseInt(searchParams.get('page') || '1', 10);
+  const rawLimit = parseInt(searchParams.get('limit') || '10', 10);
+  const { page, limit } = validatePaginationParams(rawPage, rawLimit);
   const offset = (page - 1) * limit;
 
-  // Parse sorting params
-  const sortField = searchParams.get('sortField') as 'firstName' | 'lastName' | 'city' | 'degree' | 'yearsOfExperience' | null;
-  const sortDirection = searchParams.get('sortDirection') as 'asc' | 'desc' | null;
+  // Parse and validate sorting params
+  const sortField = validateSortField(searchParams.get('sortField'));
+  const sortDirection = validateSortDirection(searchParams.get('sortDirection'));
 
-  // Parse filter params
-  const nameSearch = searchParams.get('nameSearch');
-  const cities = searchParams.get('cities')?.split(',').filter(Boolean);
-  const degrees = searchParams.get('degrees')?.split(',').filter(Boolean);
-  const specialties = searchParams.get('specialties')?.split(',').filter(Boolean);
-  const minExperience = searchParams.get('minExperience');
-  const maxExperience = searchParams.get('maxExperience');
+  // Parse and sanitize filter params
+  const rawNameSearch = searchParams.get('nameSearch');
+  const nameSearch = rawNameSearch ? sanitizeString(rawNameSearch) : null;
+
+  const rawCities = searchParams.get('cities')?.split(',').filter(Boolean);
+  const cities = rawCities ? sanitizeStringArray(rawCities) : null;
+
+  const rawDegrees = searchParams.get('degrees')?.split(',').filter(Boolean);
+  const degrees = rawDegrees ? sanitizeStringArray(rawDegrees) : null;
+
+  const rawSpecialties = searchParams.get('specialties')?.split(',').filter(Boolean);
+  const specialties = rawSpecialties ? sanitizeStringArray(rawSpecialties) : null;
+
+  const { min: minExperience, max: maxExperience } = validateExperienceRange(
+    searchParams.get('minExperience'),
+    searchParams.get('maxExperience')
+  );
 
   // Build WHERE clause
   const whereConditions: SQL[] = [];
@@ -51,18 +70,19 @@ export async function GET(request: NextRequest) {
   }
 
   // Specialties filter (check if any selected specialty exists in the JSONB array)
+  // Using parameterized array binding to prevent SQL injection
   if (specialties && specialties.length > 0) {
     whereConditions.push(
-      sql`${advocates.specialties} ?| array[${sql.join(specialties.map(s => sql.raw(`'${s}'`)), sql`, `)}]`
+      sql`${advocates.specialties} ?| ${specialties}`
     );
   }
 
   // Years of experience filter
-  if (minExperience) {
-    whereConditions.push(gte(advocates.yearsOfExperience, parseInt(minExperience, 10)));
+  if (minExperience !== null) {
+    whereConditions.push(gte(advocates.yearsOfExperience, minExperience));
   }
-  if (maxExperience) {
-    whereConditions.push(lte(advocates.yearsOfExperience, parseInt(maxExperience, 10)));
+  if (maxExperience !== null) {
+    whereConditions.push(lte(advocates.yearsOfExperience, maxExperience));
   }
 
   // Combine all WHERE conditions

@@ -42,7 +42,9 @@ export function useAdvocates({
   const [experienceRange, setExperienceRange] = useState({ min: 0, max: 20 });
 
   const fetchAdvocates = useCallback(() => {
+    const abortController = new AbortController();
     setIsLoading(true);
+    setError(null);
 
     // Build query parameters
     const params = new URLSearchParams({
@@ -79,8 +81,15 @@ export function useAdvocates({
       params.append('maxExperience', filters.maxExperience.toString());
     }
 
-    fetch(`/api/advocates?${params.toString()}`)
-      .then((response) => response.json())
+    fetch(`/api/advocates?${params.toString()}`, {
+      signal: abortController.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then((jsonResponse) => {
         setAdvocates(jsonResponse.data);
         setTotalCount(jsonResponse.pagination.total);
@@ -88,10 +97,20 @@ export function useAdvocates({
         setIsLoading(false);
       })
       .catch((error) => {
+        // Don't set error state if request was aborted (component unmounted or new request started)
+        if (error.name === 'AbortError') {
+          console.log('Fetch aborted');
+          return;
+        }
         console.error("Error fetching advocates:", error);
         setError(error);
         setIsLoading(false);
       });
+
+    // Return cleanup function to abort fetch on unmount or new request
+    return () => {
+      abortController.abort();
+    };
   }, [
     page,
     limit,
@@ -140,7 +159,8 @@ export function useAdvocates({
   }, []);
 
   useEffect(() => {
-    fetchAdvocates();
+    const cleanup = fetchAdvocates();
+    return cleanup;
   }, [fetchAdvocates]);
 
   return {

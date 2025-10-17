@@ -11,6 +11,7 @@ import {
   AdvocateCard,
   LoadingState,
   EmptyState,
+  ErrorState,
 } from "@/components/advocates";
 import { useAdvocates } from "@/hooks/useAdvocates";
 import { useAdvocateFilters } from "@/hooks/useAdvocateFilters";
@@ -47,12 +48,14 @@ export default function Home() {
   const {
     advocates,
     isLoading,
+    error,
     totalCount,
     totalPages,
     allCities,
     allDegrees,
     allSpecialties,
     experienceRange,
+    refetch,
   } = useAdvocates({
     page: currentPage,
     limit: itemsPerPage,
@@ -166,8 +169,11 @@ export default function Home() {
           {/* Loading State */}
           {isLoading && <LoadingState />}
 
+          {/* Error State */}
+          {!isLoading && error && <ErrorState error={error} onRetry={refetch} />}
+
           {/* Results Count and Active Filters */}
-          {!isLoading && (
+          {!isLoading && !error && (
             <div className="mb-4">
               <ResultsCount filteredCount={totalCount} totalCount={totalCount} />
               <ActiveFilters
@@ -183,7 +189,7 @@ export default function Home() {
           )}
 
           {/* Advocates Table - Desktop */}
-          {!isLoading && advocates.length > 0 && (
+          {!isLoading && !error && advocates.length > 0 && (
             <div className="hidden sm:block">
               <AdvocatesTable
                 advocates={advocates}
@@ -201,7 +207,7 @@ export default function Home() {
           )}
 
           {/* Advocates Cards - Mobile */}
-          {!isLoading && advocates.length > 0 && (
+          {!isLoading && !error && advocates.length > 0 && (
             <>
               <div className="sm:hidden space-y-4">
                 {advocates.map((advocate, index) => (
@@ -224,7 +230,7 @@ export default function Home() {
           )}
 
           {/* Empty State */}
-          {!isLoading && advocates.length === 0 && <EmptyState onReset={handleResetAll} />}
+          {!isLoading && !error && advocates.length === 0 && <EmptyState onReset={handleResetAll} />}
         </div>
       </main>
     </div>

@@ -7,3 +7,4 @@ export { AdvocateCard } from './AdvocateCard';
 export { SortableHeader } from './SortableHeader';
 export { LoadingState } from './LoadingState';
 export { EmptyState } from './EmptyState';
+export { ErrorState } from './ErrorState';

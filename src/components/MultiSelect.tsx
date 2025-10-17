@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Badge } from './Badge';
+import { useClickOutside } from '@/hooks/useClickOutside';
 
 interface MultiSelectProps {
   label: string;
@@ -26,17 +27,13 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
     ? options.filter(option => option.toLowerCase().includes(searchTerm.toLowerCase()))
     : options;
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setSearchTerm('');
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+  // Use custom hook for click outside detection - more efficient than direct DOM manipulation
+  const handleClickOutside = useCallback(() => {
+    setIsOpen(false);
+    setSearchTerm('');
   }, []);
+
+  useClickOutside(dropdownRef, handleClickOutside, isOpen);
 
   const toggleOption = (option: string) => {
     if (selected.includes(option)) {
