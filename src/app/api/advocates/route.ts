@@ -3,6 +3,7 @@ import { advocates } from "../../../db/schema";
 import { and, or, gte, lte, eq, sql, asc, desc } from "drizzle-orm";
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { logger, generateRequestId } from "@/lib/logger";
 
 // Input validation schema
 const querySchema = z.object({
@@ -21,9 +22,13 @@ const querySchema = z.object({
 type QueryParams = z.infer<typeof querySchema>;
 
 export async function GET(request: NextRequest) {
+  const requestId = generateRequestId();
+  const startTime = Date.now();
+
   try {
     // Database check
     if (!db) {
+      logger.error("Database not available", { requestId });
       return Response.json(
         { error: "Service unavailable" },
         { status: 503 }
@@ -97,9 +102,14 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(advocates.degree, degree));
     }
 
-    // Specialty filter (JSONB contains)
+    // Specialty filter
     if (specialty) {
-      conditions.push(sql`${advocates.specialties} @> ${JSON.stringify([specialty])}`);
+      // NOTE: Using text search as fallback due to Drizzle + postgres.js storing JSONB as strings
+      // TODO: Investigate proper JSONB storage with Drizzle ORM
+      // Escape LIKE wildcards and use parameterized query for security
+      const escapedSpecialty = specialty.replace(/%/g, '\\%').replace(/_/g, '\\_');
+      // Use parameterized query - sql template literal handles escaping
+      conditions.push(sql`specialties::text LIKE ${'%' + escapedSpecialty + '%'}`);
     }
 
     // Years of experience range (already validated as numbers by Zod)
@@ -134,6 +144,8 @@ export async function GET(request: NextRequest) {
       countQuery.where(and(...conditions));
     }
     const [{ count: totalCount }] = await countQuery;
+    // Ensure totalCount is a number (PostgreSQL returns bigint as string)
+    const totalCountNum = typeof totalCount === 'string' ? parseInt(totalCount, 10) : totalCount;
 
     // Apply pagination
     query = query.limit(limit).offset(offset) as typeof query;
@@ -141,14 +153,27 @@ export async function GET(request: NextRequest) {
     // Execute query
     const data = await query;
 
+    // Log successful request
+    const duration = Date.now() - startTime;
+    logger.http({
+      requestId,
+      method: 'GET',
+      path: '/api/advocates',
+      statusCode: 200,
+      duration,
+      resultCount: data.length,
+      totalCount: totalCountNum,
+      filters: { search, city, degree, specialty, minYears, maxYears, sortBy },
+    });
+
     return Response.json({
       data,
       pagination: {
         page,
         limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-        hasMore: page * limit < totalCount,
+        totalCount: totalCountNum,
+        totalPages: Math.ceil(totalCountNum / limit),
+        hasMore: page * limit < totalCountNum,
       },
       filters: {
         search: search || undefined,
@@ -162,11 +187,14 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    // Log detailed error for debugging
-    console.error("Error fetching advocates:", {
+    const duration = Date.now() - startTime;
+
+    // Structured error logging
+    logger.error("Error fetching advocates", {
+      requestId,
       error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
-      timestamp: new Date().toISOString(),
+      duration,
     });
 
     // Return sanitized error response (don't leak implementation details)
@@ -175,6 +203,7 @@ export async function GET(request: NextRequest) {
         error: process.env.NODE_ENV === "development" && error instanceof Error
           ? error.message
           : "Internal server error",
+        requestId, // Include requestId for error tracking
       },
       { status: 500 }
     );

@@ -107,19 +107,16 @@ export function useAdvocates(filters: AdvocateFilters) {
 // Hook for unique values (cities, degrees, specialties)
 export function useUniqueValues() {
   return useQuery({
-    queryKey: ["advocates", "unique-values"],
+    queryKey: ["advocates", "filters"],
     queryFn: async () => {
-      const response = await fetch("/api/advocates?limit=1000");
-      if (!response.ok) throw new Error("Failed to fetch unique values");
+      const response = await fetch("/api/advocates/filters");
+      if (!response.ok) throw new Error("Failed to fetch filter options");
 
-      const json: ApiResponse = await response.json();
-      const data = json.data || [];
-
-      return {
-        cities: Array.from(new Set(data.map(a => a.city))).sort(),
-        degrees: Array.from(new Set(data.map(a => a.degree))).sort(),
-        specialties: Array.from(new Set(data.flatMap(a => a.specialties))).sort(),
-      };
+      return response.json() as Promise<{
+        cities: string[];
+        degrees: string[];
+        specialties: string[];
+      }>;
     },
     // Cache unique values for 10 minutes (they rarely change)
     staleTime: 10 * 60 * 1000,

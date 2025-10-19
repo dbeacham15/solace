@@ -1,41 +1,81 @@
-## Solace Candidate Assignment
+# Solace Healthcare Advocates
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+A production-ready healthcare advocate directory built with Next.js, featuring advanced filtering, search, and accessibility.
 
-## Getting Started
+## Quick Start
 
-Install dependencies
+### Prerequisites
+- Node.js 18+
+- PostgreSQL database
+- npm or yarn
+
+### Installation
+
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Set up database**
+   ```bash
+   # Using Docker (recommended)
+   docker compose up -d
+   ```
+
+3. **Configure environment**
+   ```bash
+   # Copy .env.example and update DATABASE_URL if needed
+   cp .env.example .env
+   ```
+
+4. **Push database schema**
+   ```bash
+   npx drizzle-kit push
+   ```
+
+5. **Seed database**
+   ```bash
+   npm run dev
+   # In another terminal:
+   curl -X POST http://localhost:3000/api/seed
+   ```
+
+6. **Open application**
+   ```
+   http://localhost:3000
+   ```
+
+### Production Build
 
 ```bash
-npm i
+npm run build
+npm start
 ```
 
-Run the development server:
+## Features
 
-```bash
-npm run dev
-```
+- **Advanced Search & Filtering**: Multi-field search with city, degree, specialty, and experience filters
+- **Performance**: React Query caching, prefetching, debounced search
+- **Accessibility**: WCAG AA compliant, keyboard navigation, screen reader support
+- **Security**: SQL injection prevention, input validation, production-hardened endpoints
+- **Observability**: Structured logging, request tracking, performance monitoring
 
-## Database set up
+## Tech Stack
 
-The app is configured to return a default list of advocates. This will allow you to get the app up and running without needing to configure a database. If you’d like to configure a database, you’re encouraged to do so. You can uncomment the url in `.env` and the line in `src/app/api/advocates/route.ts` to test retrieving advocates from the database.
+- **Framework**: Next.js 14 (App Router)
+- **Database**: PostgreSQL with Drizzle ORM
+- **Styling**: Tailwind CSS
+- **Data Fetching**: TanStack React Query
+- **Validation**: Zod
+- **TypeScript**: Strict mode
 
-1. Feel free to use whatever configuration of postgres you like. The project is set up to use docker-compose.yml to set up postgres. The url is in .env.
+## API Endpoints
 
-```bash
-docker compose up -d
-```
+- `GET /api/advocates` - List advocates with filters/pagination
+- `GET /api/advocates/filters` - Get unique filter values
+- `POST /api/seed` - Seed database (dev only)
+- `POST /api/migrate` - Run migrations (dev only)
 
-2. Create a `solaceassignment` database.
+## Documentation
 
-3. Push migration to the database
-
-```bash
-npx drizzle-kit push
-```
-
-4. Seed the database
-
-```bash
-curl -X POST http://localhost:3000/api/seed
-```
+See `DISCUSSION.md` for detailed architecture, performance analysis, and accessibility audit.
